@@ -1,110 +1,100 @@
 /**
- * API-сервис для интеграции с equip.me (склад Алматы)
- *
- * Сейчас используются моковые данные.
- * При подключении реального API — заменить fetch-вызовы на реальные эндпоинты.
- *
- * Предполагаемая структура API equip.me:
- *   GET /api/v1/products          — список товаров на складе
- *   GET /api/v1/products/:id      — детальная карточка
- *   GET /api/v1/categories        — категории
- *   GET /api/v1/stock/:productId  — наличие на складе Алматы
+ * API-сервис — проксирует запросы через /api/ серверные функции.
+ * Моковые данные используются как fallback при ошибках.
  */
-
-const API_BASE = import.meta.env.VITE_EQUIPME_API_URL || '';
-const API_KEY = import.meta.env.VITE_EQUIPME_API_KEY || '';
-
-const headers = () => ({
-  'Content-Type': 'application/json',
-  ...(API_KEY && { Authorization: `Bearer ${API_KEY}` }),
-});
-
-// ─── Mock data (заменится реальным API) ────────────────────────────
 
 import { products as mockProducts, categories as mockCategories, brands as mockBrands } from '../data/products';
 
-let useMock = !API_BASE;
+// ─── Fetch wrapper ────────────────────────────────────────────────
 
-// ─── Products ──────────────────────────────────────────────────────
+async function apiCall(path) {
+  const res = await fetch(path);
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ─── Products ─────────────────────────────────────────────────────
 
 export async function fetchProducts(filters = {}) {
-  if (useMock) {
+  try {
+    if (!filters.category) {
+      throw new Error('category_id required');
+    }
+    const params = new URLSearchParams();
+    params.set('category_id', filters.category);
+    if (filters.brand) params.set('brand', filters.brand);
+    if (filters.search) params.set('search', filters.search);
+    if (filters.sort) params.set('sort', filters.sort);
+    if (filters.page) params.set('page', filters.page);
+    if (filters.per_page) params.set('per_page', filters.per_page);
+    if (filters.in_stock) params.set('in_stock', '1');
+
+    const data = await apiCall(`/api/products?${params}`);
+    return data;
+  } catch (err) {
+    console.warn('API fallback to mock:', err.message);
     let result = [...mockProducts];
     if (filters.category) result = result.filter(p => p.category === filters.category);
     if (filters.brand) result = result.filter(p => p.brand === filters.brand);
-    if (filters.inStock) result = result.filter(p => p.inStock);
     if (filters.search) {
       const q = filters.search.toLowerCase();
-      result = result.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        p.brand.toLowerCase().includes(q) ||
-        p.article.toLowerCase().includes(q)
-      );
+      result = result.filter(p => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q));
     }
     if (filters.sort === 'price-asc') result.sort((a, b) => a.price - b.price);
     if (filters.sort === 'price-desc') result.sort((a, b) => b.price - a.price);
     if (filters.sort === 'name') result.sort((a, b) => a.name.localeCompare(b.name));
-    return { data: result, total: result.length };
+    return { data: result, total: result.length, page: 1, per_page: 24, totalPages: 1, brands: mockBrands };
   }
+}
 
-  const params = new URLSearchParams();
-  if (filters.category) params.set('category', filters.category);
-  if (filters.brand) params.set('brand', filters.brand);
-  if (filters.inStock) params.set('in_stock', 'true');
-  if (filters.search) params.set('q', filters.search);
-  if (filters.sort) params.set('sort', filters.sort);
-
-  const res = await fetch(`${API_BASE}/api/v1/products?${params}`, { headers: headers() });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+export async function searchProducts(query) {
+  if (!query || query.trim().length < 2) return [];
+  try {
+    const data = await apiCall(`/api/search?query=${encodeURIComponent(query.trim())}`);
+    return data.data || [];
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchProduct(id) {
-  if (useMock) {
-    const product = mockProducts.find(p => p.id === Number(id));
-    if (!product) return null;
-    return product;
+  try {
+    const data = await apiCall(`/api/product/${id}`);
+    return data.data;
+  } catch (err) {
+    console.warn('API fallback to mock:', err.message);
+    return mockProducts.find(p => p.id === Number(id)) || null;
   }
-
-  const res = await fetch(`${API_BASE}/api/v1/products/${id}`, { headers: headers() });
-  if (!res.ok) return null;
-  return res.json();
 }
+
+// ─── Categories ───────────────────────────────────────────────────
 
 export async function fetchCategories() {
-  if (useMock) return mockCategories;
-
-  const res = await fetch(`${API_BASE}/api/v1/categories`, { headers: headers() });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
-
-export async function fetchBrands() {
-  if (useMock) return mockBrands;
-
-  const res = await fetch(`${API_BASE}/api/v1/brands`, { headers: headers() });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
-
-// ─── Stock check ───────────────────────────────────────────────────
-
-export async function checkStock(productId) {
-  if (useMock) {
-    const product = mockProducts.find(p => p.id === Number(productId));
-    return {
-      inStock: product?.inStock ?? false,
-      warehouse: 'Алматы',
-      supplier: 'equip.me',
-    };
+  try {
+    const data = await apiCall('/api/categories');
+    return data.data || [];
+  } catch (err) {
+    console.warn('API fallback to mock:', err.message);
+    return mockCategories;
   }
-
-  const res = await fetch(`${API_BASE}/api/v1/stock/${productId}`, { headers: headers() });
-  if (!res.ok) return { inStock: false, warehouse: 'Алматы', supplier: 'equip.me' };
-  return res.json();
 }
 
-// ─── WhatsApp helpers ──────────────────────────────────────────────
+// ─── Brands ───────────────────────────────────────────────────────
+
+export async function fetchBrands(categoryId) {
+  try {
+    const params = categoryId ? `?category_id=${categoryId}` : '';
+    const data = await apiCall(`/api/brands${params}`);
+    return data.data || [];
+  } catch (err) {
+    console.warn('API fallback to mock:', err.message);
+    return mockBrands;
+  }
+}
+
+// ─── WhatsApp & Phone helpers ─────────────────────────────────────
 
 const WHATSAPP_NUMBER = '77001234567';
 

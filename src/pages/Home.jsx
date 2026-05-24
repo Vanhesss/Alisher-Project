@@ -1,283 +1,309 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, Truck, Shield, Headphones, Package, CheckCircle2, MessageCircle, Phone } from 'lucide-react';
+import {
+  ArrowRight, Truck, Shield, Package, MessageCircle, Phone, Loader2,
+  Coffee, Flame, Snowflake, Wine, Droplets, LayoutGrid, Zap,
+  UtensilsCrossed, Wrench, ChevronRight, Waves, Wind, ShoppingCart, Factory, Scale,
+  Star, BadgeCheck, Clock,
+} from 'lucide-react';
 import ProductCard from '../components/ProductCard';
-import CategoryCard from '../components/CategoryCard';
-import { products, categories, brands } from '../data/products';
-import { getWhatsAppLink, getPhoneLink } from '../services/api';
+import { fetchProducts, fetchCategories, fetchBrands, getWhatsAppLink, getPhoneLink } from '../services/api';
+
+const ICON_MAP = {
+  Coffee, Flame, Snowflake, Wine, Droplets, LayoutGrid, Zap, UtensilsCrossed,
+  Wrench, Package, Waves, Wind, ShoppingCart, Factory, Scale,
+  SprayCan: Droplets, Sandwich: UtensilsCrossed,
+};
 
 export default function Home() {
-  const hitProducts = products.filter(p => p.isHit);
-  const newProducts = products.filter(p => p.isNew);
-  const inStockCount = products.filter(p => p.inStock).length;
+  const [categories, setCategories] = useState([]);
+  const [hitProducts, setHitProducts] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      try {
+        const catsData = await fetchCategories();
+        if (!mounted) return;
+        const topCats = catsData.filter(c => c.isTopLevel);
+        setCategories(topCats);
+
+        const catIds = topCats.slice(0, 2).map(c => c.id);
+        const productResults = await Promise.all(
+          catIds.map(id => fetchProducts({ category: id, per_page: 8 }).catch(() => ({ data: [] })))
+        );
+        if (!mounted) return;
+        setHitProducts(productResults.flatMap(r => r.data || []).slice(0, 8));
+
+        const brandResults = await Promise.all(
+          topCats.slice(0, 3).map(c => fetchBrands(c.id).catch(() => []))
+        );
+        if (!mounted) return;
+        const allBrands = [...new Set(brandResults.flat())].sort();
+        if (allBrands.length > 0) setBrands(allBrands.slice(0, 16));
+      } catch (err) {
+        console.warn('Home load error:', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   return (
-    <div>
-      {/* ──── HERO ──── */}
-      <section className="relative min-h-[85vh] sm:min-h-[95vh] flex items-center overflow-hidden">
-        <div className="absolute inset-0">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="w-full h-full object-cover"
-          >
-            <source src="https://videos.pexels.com/video-files/8428490/8428490-hd_2048_1080_25fps.mp4" type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/50 to-black/30" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-        </div>
+    <div className="bg-white">
 
-        <div className="relative max-w-[1440px] mx-auto px-6 lg:px-12 py-32 w-full">
-          <div className="max-w-3xl">
-            <div className="overflow-hidden mb-6">
-              <span className="block text-[10px] font-medium tracking-[0.4em] uppercase text-copper-light opacity-0 animate-fade-up">
-                Официальный партнёр equip.me · Склад Алматы
-              </span>
-            </div>
-
-            <div className="overflow-hidden">
-              <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl lg:text-[5.5rem] text-white leading-[1.05] tracking-tight opacity-0 animate-fade-up delay-200">
+      {/* ── HERO ── */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[420px] sm:min-h-[500px] items-center py-10 sm:py-16">
+            {/* Left */}
+            <div>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight mb-4">
                 Профессиональное<br />
-                оборудование<br />
-                <em className="text-copper-light">в наличии</em>
+                <span className="text-primary">оборудование</span><br />
+                для HoReCa
               </h1>
-            </div>
-
-            <div className="overflow-hidden mt-8">
-              <p className="text-white/50 text-base lg:text-lg leading-relaxed max-w-lg opacity-0 animate-fade-up delay-300">
-                Тепловое, холодильное, барное и кофейное оборудование
-                со склада в Алматы. Напишите — подберём и доставим.
+              <p className="text-gray-500 text-sm sm:text-base leading-relaxed mb-6 sm:mb-8 max-w-lg">
+                Тепловое, холодильное, барное и кофейное оборудование.
+                Склад в Алматы. Доставка по Казахстану.
               </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3 mt-10 opacity-0 animate-fade-up delay-400">
-              <Link to="/catalog" className="btn-copper gap-2">
-                Смотреть каталог <ArrowRight size={14} />
-              </Link>
-              <a
-                href={getWhatsAppLink()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-[#25D366] text-white px-6 py-3.5 sm:px-8 sm:py-4 font-medium text-[11px] tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2 hover:bg-[#1ea952] transition-colors no-underline"
-              >
-                <MessageCircle size={14} /> WhatsApp
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom stats bar */}
-        <div className="absolute bottom-0 inset-x-0 border-t border-white/10">
-          <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
-            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/10">
-              {[
-                { value: `${inStockCount}+`, label: 'Товаров в наличии' },
-                { value: '1', label: 'Склад в Алматы' },
-                { value: '50+', label: 'Мировых брендов' },
-                { value: '24ч', label: 'Ответ менеджера' },
-              ].map((stat, i) => (
-                <div key={stat.label} className={`py-4 sm:py-6 lg:py-8 ${i > 0 ? 'pl-4 sm:pl-6 lg:pl-10' : ''} ${i >= 2 ? 'border-t border-white/10 sm:border-t-0' : ''} opacity-0 animate-fade-up`} style={{ animationDelay: `${0.5 + i * 0.1}s` }}>
-                  <div className="text-lg sm:text-xl lg:text-2xl font-serif text-white mb-1">{stat.value}</div>
-                  <div className="text-[9px] sm:text-[10px] text-white/30 tracking-[0.15em] uppercase">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ──── HOW IT WORKS ──── */}
-      <section className="bg-ivory border-b border-black/5">
-        <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 sm:divide-x divide-black/5">
-            {[
-              { icon: Package, title: 'Наличие на складе', desc: 'Оборудование equip.me в Алматы' },
-              { icon: MessageCircle, title: 'Заявка', desc: 'WhatsApp или звонок' },
-              { icon: Shield, title: 'Гарантия', desc: 'Официальная до 3 лет' },
-              { icon: Truck, title: 'Доставка', desc: 'По Алматы и Казахстану' },
-            ].map(adv => (
-              <div key={adv.title} className="flex items-center gap-4 py-4 sm:py-7 lg:py-8 px-5 lg:px-8 border-b sm:border-b-0 border-black/5 last:border-b-0">
-                <adv.icon size={20} className="text-copper shrink-0" strokeWidth={1.5} />
-                <div>
-                  <h4 className="text-[13px] font-medium text-primary">{adv.title}</h4>
-                  <p className="text-[11px] text-ash mt-0.5">{adv.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ──── CATEGORIES ──── */}
-      <section className="py-20 lg:py-28 bg-white">
-        <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
-          <div className="flex items-end justify-between mb-12 lg:mb-16">
-            <div>
-              <span className="label">Каталог</span>
-              <h2 className="section-title mt-3">
-                Категории<br className="hidden sm:block" /> оборудования
-              </h2>
-            </div>
-            <Link to="/catalog" className="btn-ghost hidden sm:flex">
-              Все категории <ArrowRight size={13} />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-            {categories.slice(0, 3).map((cat, i) => (
-              <CategoryCard key={cat.id} category={cat} large={i === 0} />
-            ))}
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 mt-3 lg:mt-4">
-            {categories.slice(3, 6).map(cat => (
-              <CategoryCard key={cat.id} category={cat} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ──── BESTSELLERS (In Stock) ──── */}
-      <section className="py-20 lg:py-28 bg-ivory relative noise-bg">
-        <div className="relative max-w-[1440px] mx-auto px-6 lg:px-12">
-          <div className="flex items-end justify-between mb-12 lg:mb-16">
-            <div>
-              <span className="label">В наличии на складе</span>
-              <h2 className="section-title mt-3">Популярное</h2>
-            </div>
-            <Link to="/catalog" className="btn-ghost hidden sm:flex">
-              Все товары <ArrowRight size={13} />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-6 sm:gap-x-5 sm:gap-y-10">
-            {hitProducts.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ──── EDITORIAL: How it works ──── */}
-      <section className="bg-white">
-        <div className="max-w-[1440px] mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[80vh]">
-            <div className="relative overflow-hidden img-zoom">
-              <img
-                src="https://images.unsplash.com/photo-1565538810643-b5bdb714032a?w=900&h=1100&fit=crop"
-                alt="Professional kitchen"
-                className="w-full h-full object-cover min-h-[50vh]"
-              />
-            </div>
-
-            <div className="flex flex-col justify-center px-6 sm:px-8 lg:px-20 py-12 sm:py-16 lg:py-24">
-              <span className="label">Как это работает</span>
-              <h2 className="font-serif text-2xl sm:text-3xl lg:text-5xl text-primary mt-4 mb-8 leading-[1.15]">
-                От заявки до<br />
-                <em className="text-copper">доставки</em>
-              </h2>
-              <p className="text-ash leading-relaxed text-sm mb-10 max-w-md">
-                Мы работаем напрямую со складом equip.me в Алматы. Вы выбираете — мы доставляем.
-                Никаких сложных форм и онлайн-оплат. Просто напишите нам.
-              </p>
-              <ul className="space-y-5 mb-10">
-                {[
-                  { num: '01', text: 'Выберите оборудование в каталоге' },
-                  { num: '02', text: 'Напишите в WhatsApp или позвоните' },
-                  { num: '03', text: 'Менеджер подтвердит наличие и цену' },
-                  { num: '04', text: 'Доставка со склада equip.me' },
-                ].map(item => (
-                  <li key={item.num} className="flex items-start gap-4">
-                    <span className="text-[11px] text-copper tracking-[0.2em] font-light mt-0.5 shrink-0">{item.num}</span>
-                    <span className="text-sm text-primary/70">{item.text}</span>
-                  </li>
-                ))}
-              </ul>
               <div className="flex flex-wrap gap-3">
+                <Link to="/catalog" className="btn-primary gap-2 text-sm px-6 py-3">
+                  Перейти в каталог <ArrowRight size={15} />
+                </Link>
                 <a
                   href={getWhatsAppLink()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-[#25D366] text-white px-6 py-3.5 text-[11px] font-medium tracking-[0.15em] uppercase inline-flex items-center gap-2 hover:bg-[#1ea952] transition-colors no-underline"
+                  className="flex items-center gap-2 bg-[#25D366] text-white px-6 py-3 rounded-lg font-bold text-sm hover:bg-[#1ea952] transition-colors no-underline"
                 >
-                  <MessageCircle size={14} /> Написать в WhatsApp
-                </a>
-                <a href={getPhoneLink()} className="btn-outline gap-2 py-3.5">
-                  <Phone size={14} /> Позвонить
+                  <MessageCircle size={15} /> WhatsApp
                 </a>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ──── NEW ARRIVALS ──── */}
-      <section className="py-20 lg:py-28 bg-white border-t border-black/5">
-        <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
-          <div className="flex items-end justify-between mb-12 lg:mb-16">
-            <div>
-              <span className="label">Свежие поставки</span>
-              <h2 className="section-title mt-3">Новинки на складе</h2>
-            </div>
-            <Link to="/catalog" className="btn-ghost hidden sm:flex">
-              Все новинки <ArrowRight size={13} />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-6 sm:gap-x-5 sm:gap-y-10">
-            {newProducts.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ──── BRANDS ──── */}
-      <section className="py-20 lg:py-28 bg-ivory border-t border-black/5 relative noise-bg">
-        <div className="relative max-w-[1440px] mx-auto px-6 lg:px-12 text-center">
-          <span className="label">Бренды на складе equip.me</span>
-          <h2 className="section-title mt-3">Наши бренды</h2>
-          <p className="section-subtitle mx-auto">Оригинальное оборудование от официальных дистрибьюторов</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-black/5 mt-14 border border-black/5">
-            {brands.map(brand => (
-              <div
-                key={brand}
-                className="bg-white px-8 py-8 text-base font-light text-mist
-                           hover:text-primary transition-all duration-500 cursor-pointer tracking-[0.1em]
-                           flex items-center justify-center group"
-              >
-                <span className="group-hover:scale-110 transition-transform duration-500">{brand}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ──── WHY US ──── */}
-      <section className="py-20 lg:py-28 bg-white">
-        <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-            <div className="lg:col-span-4">
-              <span className="label">Почему мы</span>
-              <h2 className="section-title mt-3">
-                Простой способ<br />купить оборудование
-              </h2>
-              <div className="w-12 h-px bg-copper mt-6" />
-            </div>
-            <div className="lg:col-span-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-black/5">
+              {/* Trust badges */}
+              <div className="flex flex-wrap gap-4 sm:gap-6 mt-8 pt-6 border-t border-gray-200">
                 {[
-                  { num: '01', title: 'Всё в наличии', desc: 'Работаем со складом equip.me в Алматы. Вы видите только то, что реально есть в наличии.' },
-                  { num: '02', title: 'Быстрый ответ', desc: 'Напишите в WhatsApp — менеджер ответит в течение часа и подтвердит наличие и цену.' },
-                  { num: '03', title: 'Доставка и гарантия', desc: 'Доставим по Алматы и Казахстану. Официальная гарантия на всё оборудование.' },
+                  { icon: Package, text: '70 000+ позиций' },
+                  { icon: Truck, text: 'Доставка по КЗ' },
+                  { icon: Shield, text: 'Официальная гарантия' },
+                  { icon: Clock, text: 'Ответ за 1 час' },
                 ].map(item => (
-                  <div key={item.num} className="bg-white p-8 lg:p-10 group">
-                    <span className="text-[11px] text-copper font-light tracking-[0.3em] block mb-8">{item.num}</span>
-                    <h3 className="text-lg font-serif text-primary mb-4">{item.title}</h3>
-                    <div className="w-6 h-px bg-black/10 mb-4 group-hover:w-10 group-hover:bg-copper transition-all duration-500" />
-                    <p className="text-ash leading-relaxed text-sm">{item.desc}</p>
+                  <div key={item.text} className="flex items-center gap-2 text-[12px] text-gray-600">
+                    <item.icon size={14} className="text-primary shrink-0" />
+                    <span>{item.text}</span>
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Right: image */}
+            <div className="relative hidden sm:block">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+                <img
+                  src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&h=600&fit=crop&q=90"
+                  alt="Professional kitchen"
+                  className="w-full h-[400px] object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+              </div>
+              {/* Floating card */}
+              <div className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg px-4 py-3 flex items-center gap-3 border border-gray-100">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+                  <Package size={18} className="text-green-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 font-medium">Сейчас на складе</p>
+                  <p className="text-sm font-bold text-gray-900">1 000+ позиций</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── BENEFITS BAR ── */}
+      <section className="bg-white border-y border-gray-100">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
+          <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-gray-100">
+            {[
+              { icon: Truck, title: 'Доставка', desc: 'По Алматы и Казахстану' },
+              { icon: BadgeCheck, title: 'Гарантия качества', desc: 'Только оригинальные товары' },
+              { icon: Shield, title: 'Гарантия', desc: 'Официальная до 3 лет' },
+              { icon: Clock, title: 'Быстрый ответ', desc: 'В течение часа' },
+            ].map((item, i) => (
+              <div key={item.title} className={`flex items-center gap-3 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 ${i >= 2 ? 'border-t border-gray-100 lg:border-t-0' : ''}`}>
+                <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center shrink-0">
+                  <item.icon size={17} className="text-primary" />
+                </div>
+                <div>
+                  <h4 className="text-[12px] sm:text-[13px] font-bold text-gray-900">{item.title}</h4>
+                  <p className="text-[10px] sm:text-[11px] text-gray-400 mt-0.5">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CATEGORIES ── */}
+      <section className="py-8 sm:py-12 bg-white">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
+          <div className="flex items-center justify-between mb-5 sm:mb-7">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900">Категории</h2>
+            <Link to="/catalog" className="text-sm text-primary font-semibold hover:underline flex items-center gap-1 no-underline">
+              Все <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-10"><Loader2 size={24} className="animate-spin text-primary" /></div>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3">
+              {categories.slice(0, 12).map(cat => {
+                const IconComponent = ICON_MAP[cat.icon] || Package;
+                return (
+                  <Link
+                    key={cat.id}
+                    to={`/catalog?category=${cat.id}`}
+                    className="group bg-gray-50 hover:bg-primary rounded-xl p-3 sm:p-4 flex flex-col items-center gap-2 text-center no-underline transition-all duration-200 border border-transparent hover:border-primary/10 hover:shadow-md"
+                  >
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white group-hover:bg-white/20 rounded-xl flex items-center justify-center transition-colors duration-200 shadow-sm">
+                      <IconComponent size={18} className="text-primary group-hover:text-white transition-colors duration-200" strokeWidth={1.75} />
+                    </div>
+                    <span className="text-[10px] sm:text-[11px] font-semibold text-gray-700 group-hover:text-white leading-tight transition-colors duration-200 line-clamp-2">
+                      {cat.name}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── PRODUCTS ── */}
+      <section className="py-8 sm:py-12 bg-gray-50">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
+          <div className="flex items-center justify-between mb-5 sm:mb-7">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900">Популярные товары</h2>
+            <Link to="/catalog" className="text-sm text-primary font-semibold hover:underline flex items-center gap-1 no-underline">
+              Смотреть все <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-10"><Loader2 size={24} className="animate-spin text-primary" /></div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              {hitProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+
+          <div className="text-center mt-6 sm:mt-8">
+            <Link to="/catalog" className="btn-primary inline-flex gap-2">
+              Перейти в каталог <ArrowRight size={15} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── BRANDS ── */}
+      {brands.length > 0 && (
+        <section className="py-8 sm:py-12 bg-white border-t border-gray-100">
+          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-5 sm:mb-7">Бренды</h2>
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+              {brands.map(brand => (
+                <Link
+                  key={brand}
+                  to={`/catalog?brand=${encodeURIComponent(brand)}`}
+                  className="bg-gray-50 hover:bg-blue-50 rounded-xl px-3 py-3 text-[11px] sm:text-xs font-semibold text-gray-500 hover:text-primary transition-all text-center truncate no-underline border border-gray-100 hover:border-blue-200"
+                >
+                  {brand}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── HOW IT WORKS ── */}
+      <section className="py-8 sm:py-12 bg-gray-50 border-t border-gray-100">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+            <div className="relative hidden lg:block rounded-2xl overflow-hidden shadow-xl">
+              <img
+                src="https://images.unsplash.com/photo-1565538810643-b5bdb714032a?w=800&h=600&fit=crop"
+                alt="Kitchen equipment"
+                className="w-full h-[380px] object-cover"
+              />
+            </div>
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6">Как сделать заказ</h2>
+              <div className="space-y-4">
+                {[
+                  { num: '1', title: 'Выберите товар', desc: 'Найдите нужное оборудование в каталоге. Можно воспользоваться поиском.' },
+                  { num: '2', title: 'Свяжитесь с нами', desc: 'Напишите в WhatsApp или позвоните — ответим в течение часа.' },
+                  { num: '3', title: 'Подтвердите заказ', desc: 'Менеджер уточнит наличие, цену и условия доставки.' },
+                  { num: '4', title: 'Получите товар', desc: 'Доставим по Алматы и всему Казахстану.' },
+                ].map(item => (
+                  <div key={item.num} className="flex gap-4 items-start">
+                    <div className="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center font-bold text-sm shrink-0">
+                      {item.num}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-sm">{item.title}</h4>
+                      <p className="text-gray-500 text-sm mt-0.5">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-3 mt-7">
+                <a
+                  href={getWhatsAppLink()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 bg-[#25D366] text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-[#1ea952] transition-colors no-underline"
+                >
+                  <MessageCircle size={15} /> Написать в WhatsApp
+                </a>
+                <a
+                  href={getPhoneLink()}
+                  className="flex items-center gap-2 border-2 border-gray-200 text-gray-700 px-5 py-2.5 rounded-lg font-bold text-sm hover:border-primary hover:text-primary transition-colors no-underline"
+                >
+                  <Phone size={15} /> Позвонить
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── WHY US ── */}
+      <section className="py-8 sm:py-12 bg-white border-t border-gray-100">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-5 sm:mb-8 text-center">Почему выбирают нас</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { icon: Package, title: 'Широкий каталог', desc: 'Более 70 000 позиций профессионального оборудования для ресторанов, кафе и баров.', color: 'blue' },
+              { icon: Clock, title: 'Быстрый ответ', desc: 'Напишите в WhatsApp — менеджер ответит в течение часа и подтвердит наличие.', color: 'green' },
+              { icon: Truck, title: 'Доставка и гарантия', desc: 'Доставим по Алматы и Казахстану. Официальная гарантия на всё оборудование.', color: 'purple' },
+            ].map(item => (
+              <div key={item.title} className="bg-gray-50 rounded-2xl p-5 sm:p-6 border border-gray-100">
+                <div className="w-11 h-11 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
+                  <item.icon size={20} className="text-primary" />
+                </div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">{item.title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

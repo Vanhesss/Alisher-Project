@@ -14,9 +14,11 @@ export default function CategoryCard({ category, large = false }) {
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent group-hover:from-black/80 transition-all duration-700" />
 
       <div className="relative h-full flex flex-col justify-end p-6 lg:p-8">
-        <span className="text-[9px] font-medium tracking-[0.3em] uppercase text-white/50 mb-2">
-          {category.count} позиций
-        </span>
+        {category.count && (
+          <span className="text-[9px] font-medium tracking-[0.3em] uppercase text-white/50 mb-2">
+            {category.count} позиций
+          </span>
+        )}
         <h3 className="text-white text-base lg:text-lg font-medium leading-tight">
           {category.name}
         </h3>

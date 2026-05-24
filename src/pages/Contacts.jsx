@@ -56,7 +56,7 @@ export default function Contacts() {
               { icon: Phone, label: 'Телефон', value: '+7 (700) 123-45-67', href: getPhoneLink() },
               { icon: Mail, label: 'Email', value: 'info@prokitchen.kz', href: 'mailto:info@prokitchen.kz' },
               { icon: MessageCircle, label: 'WhatsApp', value: '+7 (700) 123-45-67', href: getWhatsAppLink() },
-              { icon: MapPin, label: 'Склад / Поставщик', value: 'equip.me, г. Алматы' },
+              { icon: MapPin, label: 'Склад', value: 'г. Алматы, Казахстан' },
               { icon: Clock, label: 'Режим работы', value: 'Пн — Пт: 9:00 — 18:00' },
             ].map(item => (
               <div key={item.label} className="flex items-start gap-4 py-5 border-b border-black/5 last:border-0">
