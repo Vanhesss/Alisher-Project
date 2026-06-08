@@ -52,16 +52,12 @@ async function equipFetch(path, params = {}) {
 const ALMATY_STOCKS = ['alm', 'alm_u', 'alm_s', 'alm_b'];
 
 function getAlmatyStock(product) {
-  // First try Almaty-specific stock
   let almatyTotal = 0;
-  let totalAny = 0;
   for (const a of product.available || []) {
     const qty = a.quantity_free || 0;
     if (ALMATY_STOCKS.includes(a.stock)) almatyTotal += qty;
-    totalAny += qty;
   }
-  // Almaty stock if available, otherwise any warehouse (equip.me ships from any)
-  return almatyTotal > 0 ? almatyTotal : totalAny;
+  return almatyTotal;  // Только Алматы, без fallback!
 }
 
 function getProductPrice(product) {
