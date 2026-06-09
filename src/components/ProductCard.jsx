@@ -87,9 +87,9 @@ export default function ProductCard({ product }) {
 
         {/* Stock */}
         <div className="flex items-center gap-1.5">
-          <div className={`w-2 h-2 rounded-full shrink-0 ${product.inStock ? 'bg-green-500' : 'bg-gray-300'}`} />
-          <span className={`text-[11px] font-medium ${product.inStock ? 'text-green-600' : 'text-gray-400'}`}>
-            {product.inStock
+          <div className={`w-2 h-2 rounded-full shrink-0 ${product.inStockAlmaty ? 'bg-green-500' : 'bg-gray-300'}`} />
+          <span className={`text-[11px] font-medium ${product.inStockAlmaty ? 'text-green-600' : 'text-gray-400'}`}>
+            {product.inStockAlmaty
               ? `В наличии${product.stockQuantity ? ` · ${product.stockQuantity} шт.` : ''}`
               : 'Под заказ'}
           </span>

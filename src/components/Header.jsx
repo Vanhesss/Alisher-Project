@@ -274,7 +274,7 @@ export default function Header() {
                           </div>
                           <div className="text-right shrink-0">
                             <p className="text-[12px] font-bold text-gray-900">{formatPrice(product.price)}</p>
-                            {product.inStock && <p className="text-[10px] text-green-600">В наличии</p>}
+                            {product.inStockAlmaty && <p className="text-[10px] text-green-600">В наличии</p>}
                           </div>
                         </Link>
                       ))}

@@ -96,7 +96,7 @@ export default function Catalog() {
       in_stock: stockFilter === 'in_stock' ? true : undefined,
     }).then(result => {
       let items = result.data || [];
-      if (stockFilter === 'to_order') items = items.filter(p => !p.inStock);
+      if (stockFilter === 'to_order') items = items.filter(p => !p.inStockAlmaty);
       setProducts(items);
       setTotal(result.total || 0);
       setTotalPages(result.totalPages || 1);

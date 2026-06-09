@@ -128,12 +128,12 @@ export default function ProductPage() {
 
             {/* Stock status */}
             <div className="flex items-center gap-3 mb-5 sm:mb-8 p-3 sm:p-4 bg-ivory">
-              {product.inStock ? (
+              {product.inStockAlmaty ? (
                 <>
                   <Package size={16} className="text-emerald-600" />
                   <div>
                     <span className="text-emerald-700 text-[11px] tracking-[0.15em] uppercase font-medium block">В наличии</span>
-                    <span className="text-ash text-[11px]">{product.inStockAlmaty ? 'Склад в Алматы' : 'Есть в наличии'}{product.stockQuantity ? ` · ${product.stockQuantity} шт.` : ''}</span>
+                    <span className="text-ash text-[11px]">Склад в Алматы{product.stockQuantity ? ` · ${product.stockQuantity} шт.` : ''}</span>
                   </div>
                 </>
               ) : (
